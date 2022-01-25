@@ -101,6 +101,6 @@ Assim, nos casos de SPA ou aplicações nativas, não há uma maneira totalmente
 
 ## Referências
 
-- [PARECKI, Aaron. The Nuts and Bolts of OAuth 2.0. Udemy. https://www.udemy.com/course/oauth-2-simplified](https://www.udemy.com/course/oauth-2-simplified)
+- PARECKI, Aaron. The Nuts and Bolts of OAuth 2.0. Udemy. [https://www.udemy.com/course/oauth-2-simplified](https://www.udemy.com/course/oauth-2-simplified)
 
 
