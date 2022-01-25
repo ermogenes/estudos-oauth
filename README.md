@@ -91,6 +91,8 @@ Para _public clients_, não há muito que se possa fazer para garantir a origem 
 
 Nesses casos o _authorization server_ não retorna um _access token_, mas sim um _authorization code_ com tempo de expiração bastante curto. Ele pode então ser trocado por um _access token_ usando o _back channel_. Para se garantir que o solicitante do _access token_ é o mesmo que solicitou o _authorization code_, no redirecionamento à _consent screen_ também é esperado o _client secret_. Porém, _public clients_ não o possuem, então é utilizado a extensão PKCE, _Proof Key for Code Exchange_ (lê-se como _pixie_: _pic-si_). Antes da primeira chamada, o _public client_ gera um segredo único, que será utilizado em substituição ao _client secret_, garantindo que o solicitante do fluxo é o mesmo que receberá o _access token_ em troca do _authorization code_.
 
+_Na realidade, a extensão PKCE é tão poderosa que é recomendado seu uso em todas as situações, mesmo em confidential clients, evitando assim ataques do tipo [Authorization Code Injection](https://tools.ietf.org/id/draft-ietf-oauth-security-topics-12.html#rfc.section.4.5)._
+
 Isso ainda não resolve o fato de que a identidade do _client_ não pode ser comprovada, mas somente a correlação entre o solicitante do login e o recebedor do _access token_. Um atacante ainda poderá tentar se passar pela aplicação e realizar todo o fluxo, já que toda a informação nesse fluxo é pública.
 
 Para reduzir esse risco, há uma _whitelist_ de URLs de redirecionamento permitidas que deve ser configurado no _authorization server_. Isso garante que o redirecionamento contendo o _authorization code_ via _front channel_ só será realizado para origens confiáveis.
@@ -120,7 +122,43 @@ _On-premise_:
 _Frameworks_ para desenvolvimento:
 - [Duende IdentityServer](https://duendesoftware.com/products/identityserver)
 
+Escolha um deles, e faça as configurações necessárias.
+
+Será necessário se cadastrar como desenvolvedor, e em sua conta registrar as suas aplicações _clients_. Os _clients_ registrados receberão credenciais para serem usadas em fluxos OAuth, contendo um `client_id` (público) e, para _confidential clients_, um `client_secret` (privado). Ao registrar, você indicará as _redirect URLs_ em uma _whitelist_ (evite usar curingas ou padrões). Pode ser necessário indicar um nome público (para a _consent screen_), logo, descrição e links para termos de serviço e privacidade.
+
+As informações e configurações variam por provedor, podendo adaptar-se de acordo com o tipo de _client_ solicitado.
+
+## _Clientes OAuth_
+
+Vamos discutir fluxos para diversos cenários.
+
+### Aplicações _backend_
+
+Aplicações _backend_ podem necessitar acessar APIs que estão protegidas por OAuth para buscar recursos necessários para o seu processamento. Como não possuem nenhum usuário operando interativamente, não há interesse no uso de _consent screens_. Porém, esse tipo de aplicação costuma ser implantada em servidores nos quais o usuário não tem acesso direto, sendo assim ideais  _confidential clients_.
+
+Exemplo: Alice usa o `chrome` para acessar a aplicação `myapp_mvc`. Ela é uma aplicação ASP.NET MVC que roda no _backend_, e necessita consumir um serviço em `whatever_api`, protegido por OAuth através do _authorization server_ do Okta.
+
+![](confidential-client-001.drawio.svg)
+
+O _confidential client_ `myapp_mvc` é registrado em `okta` e obtém um `client_id` e um `client_secret`, que são incluídos em seu _deploy_ (`client_id` no fonte, `client_secret` em uma variável de ambiente).
+
+Alice não está logada ainda, e clica em uma opção que necessita de um dado que deve ser buscado em `whatever_api`, porém só está disponível para usuários autenticados.
+
+![](confidential-client-002.drawio.svg)
+
+1. Alice solicita um dado privado ao clicar em um botão na página usando o Chrome. O _user agent_ trafega a solicitação até o _backend_, que não pode obtê-la e entregá-la sem a autenticação do usuário. 
+2. Para obter a autorização, o cliente envia ao navegador um pedido de redirecionamento para o _authorization server_, contendo uma solicitação de autorização. Nessa solicitação trafega o identificador do cliente, o nível de acesso necessário, e a URL para redirecionamento (que deve trazer de volta ao _backend_). O objetivo é obter um _authorization code_.
+3. O _authorization server_ redireciona para a tela de consentimento, aguardando credenciais e permissão de acesso.
+4. O usuário provê interativamente credenciais válidas e permissão para o cliente obter os dados, que são enviados diretamente ao _authorization server_.
+5. Em troca das credenciais válidas, o _authorization server_ solicita redirecionamento para o URL indicado, juntamente com um _authorization code_. O navegador redireciona para o _backend_. Até agora, toda a comunicação se deu pelo _front channel_. O usuário continuará aguardando o término da solicitação.
+6. Em posse do _authorization code_, o cliente pode anexar o seu _client secret_ e trocá-los por um _access token_. Essa comunicação é feita pelo _back channel_, diretamente entre o cliente e o _authorization server_.
+7. O _authorization server_ devolve um _access token_, que permitirá ao cliente obter recursos no _resource server_.
+8. Ainda no _back channel_, o cliente solicita o recurso desejado usando o _access token_.
+9. O _resource server_ valida o _access token_ e devolve o recurso desejado.
+10. De posse do dado, o cliente envia a página com o conteúdo solicitado por Alice.
+
 ## Referências
 
 - PARECKI, Aaron. The Nuts and Bolts of OAuth 2.0. Udemy. [https://www.udemy.com/course/oauth-2-simplified](https://www.udemy.com/course/oauth-2-simplified).
-- Digital Ocean. An Introduction to OAuth 2. [https://www.digitalocean.com/community/tutorials/an-introduction-to-oauth-2](https://www.digitalocean.com/community/tutorials/an-introduction-to-oauth-2). ([versão pt-BR](https://www.digitalocean.com/community/tutorials/uma-introducao-ao-oauth-2-pt))
+- Digital Ocean. An Introduction to OAuth 2. [https://www.digitalocean.com/community/tutorials/an-introduction-to-oauth-2](https://www.digitalocean.com/community/tutorials/an-introduction-to-oauth-2). ([versão pt-BR](https://www.digitalocean.com/community/tutorials/uma-introducao-ao-oauth-2-pt)).
+- Okta. Developer Docs - Concepts. [https://developer.okta.com/docs/concepts/](https://developer.okta.com/docs/concepts/).
