@@ -99,8 +99,28 @@ Essas URL, chamadas _redirect URLs_, podem ser URLs como `https://xyzapp.com/red
 
 Assim, nos casos de SPA ou aplicações nativas, não há uma maneira totalmente segura de garantir a identidade da aplicação. Assim, em _public clients_ só se pode garantir que a aplicação que recebeu autorização de acesso é a mesma que a solicitou e recebeu consentimento do usuário. Tenha isso em mente ao definir os tempos de vida dos _tokens_ e a dispensa da tela de consentimento.
 
+## CIAM - _Customer Identity and Access Management_
+
+Há várias soluções para o papel de _authorization servers_, comerciais e gratuitas. Segue algumas.
+
+Serviços dedicados (SaaS/IDaaS): 
+- [Okta](https://www.okta.com/)
+- [Auth0](https://auth0.com/)
+
+Serviços integrados a soluções de nuvem:
+- [Amazon Cognito](https://aws.amazon.com/pt/cognito/)
+- [Google Cloud Identity Platform](https://cloud.google.com/identity-platform)
+- [Azure Active Directory](https://azure.microsoft.com/pt-br/services/active-directory/) e [Azure Active Directory B2C](https://azure.microsoft.com/pt-br/services/active-directory/external-identities/b2c/#overview)
+
+_On-premise_:
+- [Keycloak](https://www.keycloak.org/)
+- [WSO2](https://wso2.com/)
+- [Ory Hydra](https://www.ory.sh/hydra/docs/)
+
+_Frameworks_ para desenvolvimento:
+- [Duende IdentityServer](https://duendesoftware.com/products/identityserver)
+
 ## Referências
 
 - PARECKI, Aaron. The Nuts and Bolts of OAuth 2.0. Udemy. [https://www.udemy.com/course/oauth-2-simplified](https://www.udemy.com/course/oauth-2-simplified).
-
-
+- Digital Ocean. An Introduction to OAuth 2. [https://www.digitalocean.com/community/tutorials/an-introduction-to-oauth-2](https://www.digitalocean.com/community/tutorials/an-introduction-to-oauth-2). ([versão pt-BR](https://www.digitalocean.com/community/tutorials/uma-introducao-ao-oauth-2-pt))
