@@ -133,7 +133,6 @@ Algo como:
 
 ![](endpoints-config-json.png)
 
+## Links úteis
 
-
-
-
+- https://www.keycloak.org/docs/latest/authorization_services/#_getting_started_overview
