@@ -152,10 +152,16 @@ Alice não está logada ainda, e clica em uma opção que necessita de um dado q
 4. O usuário provê interativamente credenciais válidas e permissão para o cliente obter os dados, que são enviados diretamente ao _authorization server_.
 5. Em troca das credenciais válidas, o _authorization server_ solicita redirecionamento para o URL indicado, juntamente com um _authorization code_. O navegador redireciona para o _backend_. Até agora, toda a comunicação se deu pelo _front channel_. O usuário continuará aguardando o término da solicitação.
 6. Em posse do _authorization code_, o cliente pode anexar o seu _client secret_ e trocá-los por um _access token_. Essa comunicação é feita pelo _back channel_, diretamente entre o cliente e o _authorization server_.
-7. O _authorization server_ devolve um _access token_, que permitirá ao cliente obter recursos no _resource server_.
+7. O _authorization server_ devolve um _access token_ (e possivelmente um _refresh token_), que permitirá ao cliente obter recursos no _resource server_.
 8. Ainda no _back channel_, o cliente solicita o recurso desejado usando o _access token_.
 9. O _resource server_ valida o _access token_ e devolve o recurso desejado.
 10. De posse do dado, o cliente envia a página com o conteúdo solicitado por Alice.
+
+Caso exista suporte a PKCE, ele será gerado no passo 2 (trafega hash, ou _code challenge_), e conferido no passo 6 (trafega texto claro, ou _code verifier_). Caso não exista suporte, pode-se utilizar `state` para se proteger de ataques CSRF (aleatório em 2, igual na resposta em 3).
+
+## Materiais adicionais
+
+- [Keycloak local com `podman-compose`](keycloak/README.md)
 
 ## Referências
 
