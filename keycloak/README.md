@@ -65,9 +65,8 @@ echo "export PATH=\"/home/<SEU_USUÁRIO>/.local/bin:\$PATH\"" >> ~/.bashrc && so
 
 Vamos usar uma imagem oficial do Keycloak em um Composefile. Usaremos `podman`/`buildah` para substituir o Docker, e `podman-compose` em vez do Docker Compose.
 
-Crie o seguinte arquivo:
+Crie o arquivo [`docker-compose.yml`](docker-compose.yml):
 
-`docker-compose.yml`
 ```yaml
 version: "3"
 volumes:
