@@ -43,6 +43,19 @@ Exemplo 1: Maria (_resource owner_) usa o Chrome (_user agent_) para acessar o s
 
 Exemplo 2: Tereza (_resource owner_) usa o Firefox (_user agent_) para acessar o site JKL (_client_) que usa segurança OAuth, e clica em 'Entrar com o Google'. Ele redireciona o usuário para o Google (_authorization server_) que mostra uma tela solicitando as credenciais do usuário (usuário e senha). Após validação, retorna um _access token_ ao redirecionar de volta ao _client_. Esse _token_ é reenviado a cada solicitação de dados ao _backend_ (_API_, no seu papel funcional), que possui algum mecanismo para verificar se o _access token_ é válido.
 
+### Fluxo abstrato
+
+Vejamos como os papéis interagem. O fluxo é iniciado quando o _client_ necessita de um recurso que está protegido por OAuth.
+
+![](abstract-flow.drawio.svg)
+
+- (A): O _client_ necessita de uma autorização de uso (_authorization grant_), que só pode ser dada pelo _resource owner_. Há diversas maneiras de realizar essa solicitação (preferencialmente via _authorization server_, e não diretamente como nesse fluxo abstrato), e 4 tipos diferentes de _grants_.
+- (B): O _client_ recebe um _authorization grant_, uma credencial representando uma autorização de uso dada pelo _resource owner_.
+- (C): O _client_ envia o _grant_ ao _authorization server_, e espera um _access token_ em troca.
+- (D): O _authorization server_ autentica o _client_ e valida a _grant_, e emite um _access token_.
+- (E): O _client_ solicita o recurso desejado ao _resource server_ usando o _access token_ como prova de permissão.
+- (F): O _resource server_ valida o _access token_ e entrega o recurso solicitado.
+
 ### Tipos de _clients_
 
 _Clients_ diferem em relação à sua habilidade de armazenar algum tipo de credencial em seu _deploy_ que possa ser utilizada para verificação de identidade junto ao _authorization server_. Essas credenciais são chamadas _client secrets_ e não podem ser acessíveis pelos usuários das aplicações, logados ou não.
@@ -89,7 +102,7 @@ Cada _client_ deve possuir uma identidade única, chamada _client ID_. Ela será
 
 Para _public clients_, não há muito que se possa fazer para garantir a origem do fluxo, já que a tela de consentimento e o redirecionamento de retorno são chamadas _front channel_, e não há uma _API Key_ única envolvida.
 
-Nesses casos o _authorization server_ não retorna um _access token_, mas sim um _authorization code_ com tempo de expiração bastante curto. Ele pode então ser trocado por um _access token_ usando o _back channel_. Para se garantir que o solicitante do _access token_ é o mesmo que solicitou o _authorization code_, no redirecionamento à _consent screen_ também é esperado o _client secret_. Porém, _public clients_ não o possuem, então é utilizado a extensão PKCE, _Proof Key for Code Exchange_ (lê-se como _pixie_: _pic-si_). Antes da primeira chamada, o _public client_ gera um segredo único, que será utilizado em substituição ao _client secret_, garantindo que o solicitante do fluxo é o mesmo que receberá o _access token_ em troca do _authorization code_.
+Nesses casos o _authorization server_ não retorna um _access token_, mas sim um _authorization code_ com tempo de expiração bastante curto. Ele pode então ser trocado por um _access token_ usando o _back channel_. Para se garantir que o solicitante do _access token_ é o mesmo que solicitou o _authorization code_, no redirecionamento à _consent screen_ também é esperado o _client secret_. Porém, _public clients_ não o possuem, então é utilizado a extensão PKCE, _Proof Key for Code Exchange_ (lê-se como _pixy_: _pic-si_). Antes da primeira chamada, o _public client_ gera um segredo único, que será utilizado em substituição ao _client secret_, garantindo que o solicitante do fluxo é o mesmo que receberá o _access token_ em troca do _authorization code_.
 
 _Na realidade, a extensão PKCE é tão poderosa que é recomendado seu uso em todas as situações, mesmo em confidential clients, evitando assim ataques do tipo [Authorization Code Injection](https://tools.ietf.org/id/draft-ietf-oauth-security-topics-12.html#rfc.section.4.5)._
 
@@ -134,7 +147,7 @@ Vamos discutir fluxos para diversos cenários.
 
 ### Aplicações _backend_
 
-Aplicações _backend_ podem necessitar acessar APIs que estão protegidas por OAuth para buscar recursos necessários para o seu processamento. Como não possuem nenhum usuário operando interativamente, não há interesse no uso de _consent screens_. Porém, esse tipo de aplicação costuma ser implantada em servidores nos quais o usuário não tem acesso direto, sendo assim ideais  _confidential clients_.
+Aplicações _backend_ podem necessitar acessar APIs que estão protegidas por OAuth para buscar recursos necessários para o seu processamento. Como não possuem nenhum usuário operando interativamente, não há interesse no uso de _consent screens_. Porém, esse tipo de aplicação costuma ser implantada em servidores nos quais o usuário não tem acesso direto, sendo assim ideais _confidential clients_.
 
 Exemplo: Alice usa o `chrome` para acessar a aplicação `myapp_mvc`. Ela é uma aplicação ASP.NET MVC que roda no _backend_, e necessita consumir um serviço em `whatever_api`, protegido por OAuth através do _authorization server_ do Okta.
 
@@ -165,6 +178,9 @@ Caso exista suporte a PKCE, ele será gerado no passo 2 (trafega hash, ou _code 
 
 ## Referências
 
+- IETF. RFC 6749 - The OAuth 2.0 Authorization Framework. [https://datatracker.ietf.org/doc/html/rfc6749](https://datatracker.ietf.org/doc/html/rfc6749).
+- IETF. RFC 7636 - Proof Key for Code Exchange by OAuth Public Clients. [https://datatracker.ietf.org/doc/html/rfc7636](https://datatracker.ietf.org/doc/html/rfc7636).
+- IETF. OAuth 2.0 Security Best Current Practice (RFC draft, version 19). [https://datatracker.ietf.org/doc/draft-ietf-oauth-security-topics/](https://datatracker.ietf.org/doc/draft-ietf-oauth-security-topics/).
 - PARECKI, Aaron. The Nuts and Bolts of OAuth 2.0. Udemy. [https://www.udemy.com/course/oauth-2-simplified](https://www.udemy.com/course/oauth-2-simplified).
 - Digital Ocean. An Introduction to OAuth 2. [https://www.digitalocean.com/community/tutorials/an-introduction-to-oauth-2](https://www.digitalocean.com/community/tutorials/an-introduction-to-oauth-2). ([versão pt-BR](https://www.digitalocean.com/community/tutorials/uma-introducao-ao-oauth-2-pt)).
 - Okta. Developer Docs - Concepts. [https://developer.okta.com/docs/concepts/](https://developer.okta.com/docs/concepts/).
