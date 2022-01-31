@@ -56,13 +56,50 @@ Vejamos como os papéis interagem. O fluxo é iniciado quando o _client_ necessi
 - (E): O _client_ solicita o recurso desejado ao _resource server_ usando o _access token_ como prova de permissão.
 - (F): O _resource server_ valida o _access token_ e entrega o recurso solicitado.
 
+### _Grants_
+
+Um _authorization grant_ é uma credencial dada pelo _resource owner_ a um _client_ para acessar um recurso protegido.
+
+- _Authorization Code_: usa o _authorization server_ como intermediário entre o _client_ e o _resource owner_, aumentando a segurança em situações onde o _resource owner_ está online.
+- _Implicit_: como o anterior, mas com um fluxo simplificado, em troca de uma segurança reduzida. Não é recomendado.
+- _Resource Owner Password Credentials_: permite usar usuário/senha do _resource owner_ diretamente pelo _client_. Deve ser utilizado somente em situações específicas de alta confiança entre _resource owner_ e _client_.
+- _Client Credentials_: utilizado quando o _client_ também é o _resource owner_, como em comunicação M2M (_machine to machine_) sem interação humana.
+
+### _Access Token_
+
+Os _access tokens_ são uma abstração para dados de autorização (como usuário/senha, por exemplo).
+
+São formados por uma _string_ que representa uma autorização emitida pelo _resource owner_ permitindo ao _client_ ter acesso a um recurso. Essencialmente são identificadores, _strings_ opacas ao cliente, sem significado, mas que podem implicar escopos de uso e prazo de validade garantidos pelo _authorization server_ e o _resource server_. Podem também conter informações auto-verificáveis (como dados e assinatura). O formato mais usado atualmente é o _bearer token_, ou token "_ao portador_", codificado como JWT (_JSON Web Token_).
+
+### _Refresh Token_
+
+São como os _access tokens_, mas com a finalidade de obter um novo _access token_, e não o acesso a um recurso. São usados para renovar autorizações mesmo após o final de sua validade.
+
+![](refresh.drawio.svg)
+
+### Criptografia
+
+OAuth foi desenhado para ser utilizado com TLS.
+
+### Redirecionamentos
+
+Não há exigência de método, porém o mais comum é utilizar HTTP 302.
+
+### _Client Registration_
+
+_Clients_ devem ser previamente identificados no _authorization server_ através de:
+
+- um tipo de _client_;
+- uma ou mais URLs de redirecionamento;
+- quaisquer outros metadados requeridos pelo _authorization server_.
+
 ### Tipos de _clients_
 
 _Clients_ diferem em relação à sua habilidade de armazenar algum tipo de credencial em seu _deploy_ que possa ser utilizada para verificação de identidade junto ao _authorization server_. Essas credenciais são chamadas _client secrets_ e não podem ser acessíveis pelos usuários das aplicações, logados ou não.
 
 - _Confidential Clients_: aplicações implantadas no _backend_ (como PHP, .NET ou Python, por exemplo) que podem guardar segredos em forma de _API Keys_ em arquivos de configuração ou variáveis de ambiente (podemos pensar as _API keys_ como as senhas das aplicações).
 - _Public Clients_: aplicações que não tem essa capacidade, pois rodam nos dispositivos dos usuários, como um app _mobile_, uma SPA, um app de TV ou um software rodando em um dispositivo IoT.
-- _Credentialed Clients_: aplicações que confirmam sua identidade através de uma chave privada e um certificado únicos no cliente para obter _tokens_ vinculados unicamente a esse cliente.
+- _Credentialed Clients_: aplicações que confirmam sua identidade através de uma chave privada e um certificado únicos no cliente para obter _tokens_ vinculados unicamente a esse cliente. Incluído na versão 2.1 do OAuth.
 
 _Confidential Clients_ podem solicitar autorização a um _authorization server_ usando suas credenciais secretas únicas. Esses segredos permitem que o cliente seja identificado exclusivamente, sem a interação com o usuário. Sem eles, não há como saber se a chamada veio de um _client_ real, ou de alguém se passando por ele.
 
@@ -72,7 +109,23 @@ Os _authorization servers_ podem ter políticas diferenciadas para clientes conf
 
 Um exemplo de _credentialed client_ é um app _mobile_ instalado via loja de aplicativos. No seu primeiro uso, ele ainda não pode ser autenticado, pois ele não pode armazenar um segredo no momento do _deploy_. Ele faz um processo conhecido como _dynamic client registration_ para conseguir um segredo único, que fica armazenado somente naquele dispositivo e pode ser utilizado para identificar chamadas daquela aplicação naquele dispositivo específico. O _client_ ainda pode não estar identificado, mas é possível garantir que todas as solicitações com o mesmo _token_ vieram do mesmo _client_.
 
-### _User consent_
+_Clients_ que possuem credenciais (_confidential_ ou _credentialed_) devem usar essas credenciais sempre que possível. É recomendado o uso de métodos assimétricos como mTLS ([RFC8705](https://datatracker.ietf.org/doc/html/rfc8705)) ou OpenID (`private_key_jwt`), de forma que o _authorization server_ não necessite manter chaves simétricas dos clientes.
+
+_Clients_ que possuam o _client secret_ (como o usuário/senha do _resource owner_, por exemplo) devem usar _HTTP Basic authentication scheme_, não devem transmitir os dados via _query string_, e o _authorization server_ deve garantir que TLS está sendo usado.
+
+#### _Client Profiles_
+
+OAuth é desenhado para atender 3 perfis de clientes:
+
+- _web applications_: um _confidential client_ rodando em um _web server_. Geralmente interagem com o _resource owner_ através de uma interface HTML intermediada por um _user-agent_ rodando em um dispositivo controlado pelo usuário. Seu código e dados só são visíveis àqueles com acesso ao servidor. Exemplos: _backends_ de aplicações web com interface _server-rendered_.
+- _browser-based applications_: um _public client_ em que o software é baixado de um servidor e executado em um _user-agent_ rodando em um dispositivo controlado pelo usuário. Seu código e dados não podem ser protegidos, ou são explicitamente públicos.  Exemplos: aplicações _frontend_ acessando APIs, SPAs.
+- _native applications_: um _public client_ instalado e executado nativamente em um dispositivo controlado pelo usuário. Assume-se que seu código e dados estáticos (incluídos na instalação) são passíveis de serem extraídos, mas os dados dinâmicos (gerados durante a execução ou recebidos de terceiros) podem receber um tratamento com proteção aceitável (variando em cada plataforma). Exemplos: aplicações _mobile_ nativas, aplicações _desktop_.
+
+#### _Client Identifier_
+
+Um _client_ registrado recebe um identificador, chamado _client ID_ (`client_id`). A geração do ID deve ser feita pelo _authorization server_, e nunca pelo _client_. É composta por uma _string_ de tamanho e formatos livres, e deve ser única por _authorization server_.
+
+### _User Consent_
 
 Vejamos o caso de um _client_ que forneça sua própria tela de login, fazendo que o usuário entre com suas credenciais. Seria solicitado um _token_ com essas credenciais enviadas em uma chamada POST com usuário, senha, identificação do cliente e o tipo de login (`grant_type=password`). O _client_ realiza uma troca com o _authorization server_: as credenciais por um _access token_.
 
@@ -179,6 +232,9 @@ Caso exista suporte a PKCE, ele será gerado no passo 2 (trafega hash, ou _code 
 ## Referências
 
 - IETF. RFC 6749 - The OAuth 2.0 Authorization Framework. [https://datatracker.ietf.org/doc/html/rfc6749](https://datatracker.ietf.org/doc/html/rfc6749).
+- IETF. The OAuth 2.1 Authorization Framework (RFC draft, version 3). [https://datatracker.ietf.org/doc/html/draft-parecki-oauth-v2-1-03](https://datatracker.ietf.org/doc/html/draft-parecki-oauth-v2-1-03).
+- IETF. RFC 6750 - The OAuth 2.0 Authorization Framework: Bearer Token Usage. [https://datatracker.ietf.org/doc/html/rfc6750](https://datatracker.ietf.org/doc/html/rfc6750).
+- IETF. RFC 7519 - JSON Web Token (JWT) [https://datatracker.ietf.org/doc/html/rfc7519](https://datatracker.ietf.org/doc/html/rfc7519).
 - IETF. RFC 7636 - Proof Key for Code Exchange by OAuth Public Clients. [https://datatracker.ietf.org/doc/html/rfc7636](https://datatracker.ietf.org/doc/html/rfc7636).
 - IETF. OAuth 2.0 Security Best Current Practice (RFC draft, version 19). [https://datatracker.ietf.org/doc/draft-ietf-oauth-security-topics/](https://datatracker.ietf.org/doc/draft-ietf-oauth-security-topics/).
 - PARECKI, Aaron. The Nuts and Bolts of OAuth 2.0. Udemy. [https://www.udemy.com/course/oauth-2-simplified](https://www.udemy.com/course/oauth-2-simplified).
